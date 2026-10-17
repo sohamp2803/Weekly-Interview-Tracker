@@ -157,15 +157,6 @@ export default function QuestionsTable() {
             Showing {visibleQuestions.length} of {questions.length} items
           </span>
         </div>
-
-        <button
-          type="button"
-          onClick={() => window.location.reload()}
-          className="inline-flex w-fit items-center gap-1.5 rounded-md py-1 text-xs font-medium text-slate-500 transition hover:text-slate-800"
-        >
-          <CloudDownload size={14} />
-          Reload Page
-        </button>
       </div>
 
       {/* Mobile Card Layout */}
