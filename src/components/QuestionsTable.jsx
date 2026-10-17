@@ -1,4 +1,4 @@
-import { useContext } from "react";
+import { useContext, useEffect, useRef, useState } from "react";
 import {
   Check,
   Circle,
@@ -10,6 +10,8 @@ import {
   CalendarDays,
 } from "lucide-react";
 import { TrackerContext } from "../context/TrackerContext";
+
+const ITEMS_PER_LOAD = 5;
 
 function Status({ status }) {
   if (status === "done") {
@@ -95,6 +97,53 @@ export default function QuestionsTable() {
     setEditingQuestion,
   } = useContext(TrackerContext);
 
+  const [visibleCount, setVisibleCount] = useState(ITEMS_PER_LOAD);
+  const [isLoading, setIsLoading] = useState(false);
+
+  const observerRef = useRef(null);
+  const loadingRef = useRef(false);
+
+  // Reset visible questions when search/filter results change.
+  useEffect(() => {
+    setVisibleCount(ITEMS_PER_LOAD);
+    setIsLoading(false);
+    loadingRef.current = false;
+  }, [filteredQuestions]);
+
+  const visibleQuestions = filteredQuestions.slice(0, visibleCount);
+
+  const hasMore = visibleCount < filteredQuestions.length;
+
+  // Load more questions when the bottom sentinel enters the viewport.
+  useEffect(() => {
+    const element = observerRef.current;
+
+    if (!element || !hasMore) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && !loadingRef.current) {
+          loadingRef.current = true;
+          setIsLoading(true);
+
+          setVisibleCount((previous) =>
+            Math.min(previous + ITEMS_PER_LOAD, filteredQuestions.length),
+          );
+
+          setIsLoading(false);
+          loadingRef.current = false;
+        }
+      },
+      {
+        rootMargin: "150px",
+      },
+    );
+
+    observer.observe(element);
+
+    return () => observer.disconnect();
+  }, [hasMore, filteredQuestions.length, visibleCount]);
+
   return (
     <section className="min-w-0 overflow-hidden rounded-xl border border-slate-200 bg-white">
       {/* Header */}
@@ -105,7 +154,7 @@ export default function QuestionsTable() {
           </h2>
 
           <span className="rounded-md border border-slate-200 bg-slate-50 px-2 py-1 text-[10px] text-slate-600">
-            Showing {filteredQuestions.length} of {questions.length} items
+            Showing {visibleQuestions.length} of {questions.length} items
           </span>
         </div>
 
@@ -121,12 +170,12 @@ export default function QuestionsTable() {
 
       {/* Mobile Card Layout */}
       <div className="divide-y divide-slate-100 md:hidden">
-        {filteredQuestions.map((q) => (
+        {visibleQuestions.map((q) => (
           <article
             key={q.id}
             className="p-3 transition hover:bg-slate-50/70 sm:p-4"
           >
-            {/* Question title and status */}
+            {/* Question and Status */}
             <div className="flex items-start gap-3">
               <button
                 type="button"
@@ -170,13 +219,13 @@ export default function QuestionsTable() {
               </div>
             </div>
 
-            {/* Metadata */}
+            {/* Category and Difficulty */}
             <div className="mt-3 flex flex-wrap items-center gap-2 pl-9">
               <Category value={q.category} />
               <Difficulty value={q.difficulty} />
             </div>
 
-            {/* Date and actions */}
+            {/* Date and Actions */}
             <div className="mt-3 flex items-center justify-between gap-3 border-t border-slate-100 pt-3 pl-9">
               <span className="flex min-w-0 items-center gap-1.5 text-[11px] text-slate-500">
                 <CalendarDays size={13} className="shrink-0" />
@@ -222,7 +271,7 @@ export default function QuestionsTable() {
         )}
       </div>
 
-      {/* Tablet and Desktop Table */}
+      {/* Desktop and Tablet Table */}
       <div className="hidden overflow-x-auto md:block">
         <table className="w-full min-w-[850px] border-collapse text-left">
           <thead>
@@ -237,7 +286,7 @@ export default function QuestionsTable() {
           </thead>
 
           <tbody>
-            {filteredQuestions.map((q) => (
+            {visibleQuestions.map((q) => (
               <tr
                 key={q.id}
                 className="border-b border-slate-100 last:border-0 hover:bg-slate-50/60"
@@ -345,6 +394,25 @@ export default function QuestionsTable() {
           </tbody>
         </table>
       </div>
+
+      {/* Infinite Scroll Trigger */}
+      {hasMore && (
+        <div
+          ref={observerRef}
+          className="flex items-center justify-center gap-2 border-t border-slate-100 py-5 text-xs text-slate-500"
+        >
+          <LoaderCircle size={16} className="animate-spin" />
+          Loading more questions...
+        </div>
+      )}
+
+      {/* End of List */}
+      {!hasMore && filteredQuestions.length > 0 && (
+        <div className="border-t border-slate-100 py-5 text-center text-xs text-slate-400">
+          You've reached the end of the list.
+          <span className="ml-1">({filteredQuestions.length} questions)</span>
+        </div>
+      )}
     </section>
   );
 }
