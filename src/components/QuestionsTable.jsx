@@ -13,6 +13,22 @@ import { TrackerContext } from "../context/TrackerContext";
 
 const ITEMS_PER_LOAD = 5;
 
+const formatQuestionDate = (q) => {
+  const date = q.date || q.targetDate;
+
+  if (!date) return "No date";
+
+  const parsedDate = new Date(`${date}T00:00:00`);
+
+  if (Number.isNaN(parsedDate.getTime())) return date;
+
+  return parsedDate.toLocaleDateString("en-IN", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  });
+};
+
 function Status({ status }) {
   if (status === "done") {
     return (
@@ -220,7 +236,7 @@ export default function QuestionsTable() {
             <div className="mt-3 flex items-center justify-between gap-3 border-t border-slate-100 pt-3 pl-9">
               <span className="flex min-w-0 items-center gap-1.5 text-[11px] text-slate-500">
                 <CalendarDays size={13} className="shrink-0" />
-                <span className="break-words">{q.targetDate || "No date"}</span>
+                <span className="break-words">{formatQuestionDate(q)}</span>
               </span>
 
               <div className="flex shrink-0 items-center gap-3">
@@ -336,7 +352,7 @@ export default function QuestionsTable() {
                 <td className="px-4 py-3">
                   <span className="flex items-center gap-1.5 whitespace-nowrap text-[10px] text-slate-500">
                     <CalendarDays size={12} />
-                    {q.targetDate || "No date"}
+                    {formatQuestionDate(q)}
                   </span>
                 </td>
 
